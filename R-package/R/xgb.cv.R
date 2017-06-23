@@ -110,7 +110,7 @@
 #' print(cv, verbose=TRUE)
 #' 
 #' @export
-xgb.cv <- function(params=list(), data, nrounds, nfold, label = NULL, missing = NA,
+xgb.cv <- function(params=list(), data, nrounds, nfold, label = NULL, missing = NA, offset,
                    prediction = FALSE, showsd = TRUE, metrics=list(),
                    obj = NULL, feval = NULL, stratified = TRUE, folds = NULL, 
                    verbose = TRUE, print_every_n=1L,
@@ -180,7 +180,13 @@ xgb.cv <- function(params=list(), data, nrounds, nfold, label = NULL, missing = 
   dall <- xgb.get.DMatrix(data, label, missing)
   bst_folds <- lapply(seq_along(folds), function(k) {
     dtest  <- slice(dall, folds[[k]])
+    test_offset <- offset[folds[[k]]]
+    setinfo(dtest, name = 'base_margin', test_offset)
+    
     dtrain <- slice(dall, unlist(folds[-k]))
+    train_offset <- offset[unlist(folds[-k])]
+    setinfo(dtrain, name = 'base_margin', train_offset)
+    
     handle <- xgb.Booster.handle(params, list(dtrain, dtest))
     list(dtrain = dtrain, bst = handle, watchlist = list(train = dtrain, test=dtest), index = folds[[k]])
   })
